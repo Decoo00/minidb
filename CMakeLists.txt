@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.22)
+project(minidb CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Wall -Wextra -g -fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
+
+add_library(minidb src/pager.cpp src/bptree.cpp src/node.cpp)
+target_include_directories(minidb PUBLIC src)
+
+add_executable(pager_test tests/pager_test.cpp)
+target_link_libraries(pager_test minidb)
+add_executable(bptree_test tests/bptree_test.cpp)
+target_link_libraries(bptree_test minidb)
+add_executable(node_test tests/node_test.cpp)
+target_link_libraries(node_test minidb)
+add_executable(io_count_test tests/io_count_test.cpp)
+target_link_libraries(io_count_test minidb)
