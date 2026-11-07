@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -g -fsanitize=address,undefined)
 add_link_options(-fsanitize=address,undefined)
 
-add_library(minidb src/pager.cpp src/bptree.cpp src/node.cpp)
+add_library(minidb src/pager.cpp src/node.cpp src/bptree.cpp src/lru.cpp src/buffer_pool.cpp)
 target_include_directories(minidb PUBLIC src)
 
 add_executable(pager_test tests/pager_test.cpp)
@@ -16,3 +16,10 @@ add_executable(node_test tests/node_test.cpp)
 target_link_libraries(node_test minidb)
 add_executable(io_count_test tests/io_count_test.cpp)
 target_link_libraries(io_count_test minidb)
+add_executable(lru_test tests/lru_test.cpp)
+target_link_libraries(lru_test minidb)
+add_executable(buffer_pool_test tests/buffer_pool_test.cpp)
+target_link_libraries(buffer_pool_test minidb)
+
+# cmake -B build && cmake --build build
+# build/*_test
