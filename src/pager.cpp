@@ -44,7 +44,7 @@ page_id_t Pager::allocate() {
     return page_count_++;
 }
 
-void Pager::read(page_id_t id, char* buf) const {
+void Pager::read(page_id_t id, char* buf) {
     if (id >= page_count_) {
         throw std::runtime_error("Pager::read: page id " + std::to_string(id)
             + " out of range (page count: " + std::to_string(page_count_) + ")");

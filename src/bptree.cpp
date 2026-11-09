@@ -6,11 +6,11 @@
 
 constexpr size_t HALF_MAX_KEYS = MAX_KEYS / 2;
 
-BPlusTree::BPlusTree(Pager& pager) : pager_(pager), root_id_(NO_PAGE), size_(0) {
-    if (pager.page_count() == 0) {
-        pager.allocate();
+BPlusTree::BPlusTree(PageStore& page_store) : store_(page_store), root_id_(NO_PAGE), size_(0) {
+    if (store_.page_count() == 0) {
+        store_.allocate();
         
-        root_id_ = pager.allocate();
+        root_id_ = store_.allocate();
         store(root_id_, Node(true));
         
         store_meta();
@@ -55,7 +55,7 @@ BPlusTree::InsertResult BPlusTree::insert_into(page_id_t id, Key key, Value valu
                 // Split : right child
                 Key sepKey = node.keys[HALF_MAX_KEYS];
                 Node right = Node(false);
-                page_id_t right_id = pager_.allocate();
+                page_id_t right_id = store_.allocate();
             
                 // Opt the middle one
                 right.keys = std::vector<Key>(
@@ -92,7 +92,7 @@ BPlusTree::InsertResult BPlusTree::insert_into(page_id_t id, Key key, Value valu
             // Split : right child
             Key sepKey = node.keys[HALF_MAX_KEYS];
             Node right = Node(true);
-            page_id_t right_id = pager_.allocate();
+            page_id_t right_id = store_.allocate();
 
             right.keys = std::vector<Key>(node.keys.begin() + HALF_MAX_KEYS, node.keys.end());
             right.values = std::vector<Value>(node.values.begin() + HALF_MAX_KEYS, node.values.end());
@@ -119,7 +119,7 @@ bool BPlusTree::insert(Key key, Value value) {
     if (split.has_value()) {
         // Create new root
         Node new_root = Node(false);
-        page_id_t new_root_id = pager_.allocate();
+        page_id_t new_root_id = store_.allocate();
 
         new_root.keys = std::vector<Key>{split.value().key};
         new_root.children.push_back(root_id_);
@@ -157,7 +157,7 @@ std::vector<std::pair<Key, Value>> BPlusTree::range(Key lo, Key hi) const {
 Node BPlusTree::load(page_id_t id) const {
     if (id == NO_PAGE) throw std::runtime_error("BPlusTree::load: cannot load page 0 (meta page)");
     char rbuf[PAGE_SIZE];
-    pager_.read(id, rbuf);
+    store_.read(id, rbuf);
     return deserialize(rbuf);
 }
 
@@ -165,7 +165,7 @@ void BPlusTree::store(page_id_t id, const Node& node) {
     if (id == NO_PAGE) throw std::runtime_error("BPlusTree::store: cannot store page 0 (meta page)");
     char wbuf[PAGE_SIZE];
     serialize(node, wbuf);
-    pager_.write(id, wbuf);
+    store_.write(id, wbuf);
 }
 
 void BPlusTree::store_meta() {
@@ -175,13 +175,13 @@ void BPlusTree::store_meta() {
     memcpy(wbuf, META_MAGIC, META_MAGIC_SIZE);
     memcpy(wbuf + 64, &root_id_, sizeof(page_id_t));
     memcpy(wbuf + 72, &size, sizeof(uint64_t));
-    pager_.write(0, wbuf);
+    store_.write(0, wbuf);
 }
 
 void BPlusTree::load_meta() {
     char rbuf[PAGE_SIZE];
     uint64_t size;
-    pager_.read(0, rbuf);
+    store_.read(0, rbuf);
     if (memcmp(rbuf, META_MAGIC, META_MAGIC_SIZE) != 0) {
         throw std::runtime_error(std::string("BPlusTree::load_meta: Invalid magic: ")
             + std::string(rbuf, META_MAGIC_SIZE));

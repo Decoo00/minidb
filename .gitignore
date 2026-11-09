@@ -1,2 +1,7 @@
 */db
 build/
+build-release/
+build-prof/
+*.out
+*.data
+*.old

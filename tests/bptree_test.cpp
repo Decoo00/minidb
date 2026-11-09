@@ -1,5 +1,7 @@
 #include "bptree.h"
-#include "pager.h"
+#include "buffer_pool.h"
+#include "lru.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <map>
@@ -11,6 +13,7 @@
 
 static const char* DB_PATH = "bptree_test.db";
 constexpr size_t CHECK_EVERY = 50;
+constexpr size_t POOL_PAGES = 8;
 
 static void require(bool cond, const std::string& msg) {
     if (!cond) throw std::runtime_error(msg);
@@ -67,13 +70,15 @@ static void run(const std::string& name, const std::vector<Key>& keys, std::mt19
 
     {
         Pager pager(DB_PATH);
-        BPlusTree tree(pager);
+        BufferPool pool(pager, std::make_unique<LRU>(POOL_PAGES));
+        BPlusTree tree(pool);
         insert_all(tree, ref, keys, 0, name);
         verify(tree, ref, rng, name);
     }
     {
         Pager pager(DB_PATH);
-        BPlusTree tree(pager);
+        BufferPool pool(pager, std::make_unique<LRU>(POOL_PAGES));
+        BPlusTree tree(pool);
         verify(tree, ref, rng, name + " (reopened)");
 
         std::vector<Key> more(200);
@@ -84,7 +89,8 @@ static void run(const std::string& name, const std::vector<Key>& keys, std::mt19
     }
     {
         Pager pager(DB_PATH);
-        BPlusTree tree(pager);
+        BufferPool pool(pager, std::make_unique<LRU>(POOL_PAGES));
+        BPlusTree tree(pool);
         verify(tree, ref, rng, name + " (reopened twice)");
     }
 
@@ -98,9 +104,10 @@ static void test_bad_magic() {
         pager.allocate();
     }
     Pager pager(DB_PATH);
+    BufferPool pool(pager, std::make_unique<LRU>(POOL_PAGES));
     bool threw = false;
     try {
-        BPlusTree tree(pager);
+        BPlusTree tree(pool);
     } catch (const std::runtime_error&) {
         threw = true;
     }
